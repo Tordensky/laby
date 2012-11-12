@@ -51,7 +51,7 @@ if __name__ == "__main__":
   print "Starting game rounds!"
   
   try:
-    f = open("scoreBackup.txt", "a+")
+    f = open("scoreBackup.txt", "w+")
   except:
     print "error opening file"
   
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 	    score = raw_input('ENTER SCORE: ')
 	    compeditors[key]["score"] += int(score)
 	    
-	    f.write(key + " score: " + compeditors[key]["score"] + "\n")
+	    f.write(key + " score: " + str(compeditors[key]["score"]) + "\n")
 	    
 	    update_score_board(screen)
 	  elif "You failed to find Toby" in line:
@@ -93,6 +93,6 @@ if __name__ == "__main__":
     else:
       running = False
     
-    f.close()
+  f.close()
     
   print output.readline()

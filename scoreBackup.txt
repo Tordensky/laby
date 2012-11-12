@@ -1,2 +1,4 @@
 NEW ROUND
-Dead on arrivalFAILED
+Dead on arrival score: 1384
+NEW ROUND
+Dead on arrival score: 1404
