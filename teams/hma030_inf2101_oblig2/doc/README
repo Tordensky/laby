@@ -1,0 +1,13 @@
+----------------------
+Run the server with:
+
+$ python labyrinthServer.py mapname gamemode
+
+Where mapname is one of the maps in the map folder
+and gamemode if one of 'lab', 'trapped' or 'labyzork'.
+
+
+---------------------
+Run the game solver with:
+
+$ python labyrinth.py

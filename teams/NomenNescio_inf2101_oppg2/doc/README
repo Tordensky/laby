@@ -1,0 +1,18 @@
+This is a labyrinth game á la Zork used to test graph traversal algorithms.
+
+The traversal class (AiPlayer) is created by Bjørn Ludvig Langaas Johansen
+<bjorn@octanium.net>, Johannes Arctander Larsen <johs.a.larsen@gmail.com> as an
+assignment in the subject INF-2101 at the University of Tromsø. The rest of the
+code was provided with the assignment.
+
+Some kind of python and pygame is required to be able to run this program.
+Tested on the setup at University of Tromsø --- REALF --- IFILAB:
+
+	Python 2.6.3 (/opt/python263/bin/python2.6 on IFILAB computers)
+	Pygame 1.9.1release
+
+To run the program (assuming current directory is ../src relative to the
+directory where this file is located):
+
+	python labyrinthServer.py {awesome,empty,lab} lab &
+	python labyrinth.py

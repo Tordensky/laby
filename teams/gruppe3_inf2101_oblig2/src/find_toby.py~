@@ -1,0 +1,219 @@
+#!/usr/bin/env python
+""" Source code for AI solving maze (labyrinth). Using Dijkstra algorithm
+for backtracking and Tremaux's algorithm as backup. Authors:
+Adnan Begovic <abe065@post.uit.no>, Ole-Morten Tangen <ota000@post.uit.no>
+and Magnus W. Bjoerklund <mbj042@post.uit.no>. October, 5th 2012"""
+
+from adj_list_dict_of_dict import Graph
+from labyrinth import labyrinth
+from dijkstra_algorithm import Shortest_path
+
+class Find_toby(object):
+    def __init__(self):
+        #Using sets to track visited, visited twice and unvisited nodes...
+        self.visitedtwice = set([])
+        self.visited = set([])
+        self.unvisited = set([])
+        self.intersection = []
+        self.lab = labyrinth()
+        self.graph = Graph()
+        self.current = (0,0)
+        self.visited.add(self.current)
+        #... and stack to track intersection nodes
+        if self._find_intersection():
+            self.intersection.append(self.current)
+    
+    def find_tile(self, neighbour_list):
+        """ Check tile tyoes for tiles around the AI player
+            and acts on them accordingly.
+            toby -> player moves to toby's tile
+            trap -> run disarm command in the direction of the trap
+        """
+        if neighbour_list[1] == 'tile':
+            if neighbour_list[2] == 'trap':
+                if neighbour_list[0] == 'north':
+                    self.lab.disarm('north')
+                    print 'Disarm north trap'
+                elif neighbour_list[0] == 'south':
+                    self.lab.disarm('south')
+                    print 'Disarm south trap'
+                elif neighbour_list[0] == 'west':
+                    self.lab.disarm('west')
+                    print 'Disarm west trap'
+                elif neighbour_list[0] == 'east':
+                    self.lab.disarm('east')
+                    print 'Disarm east trap'
+            return True
+        else:
+            if neighbour_list[1] == 'toby':
+                if neighbour_list[0] == 'north':
+                    self.moveNorth()
+                elif neighbour_list[0] == 'south':
+                    self.moveSouth()
+                elif neighbour_list[0] == 'west':
+                    self.moveWest()
+                elif neighbour_list[0] == 'east':
+                    self.moveEast()
+            return False
+    
+    def _add_vertice(self, neighbour_list):
+        """ Current is tuple of its x and y position. Neighbour_list is
+        the list of neighbours to the current."""
+        if self.find_tile(neighbour_list):
+            if neighbour_list[0] == 'north':
+                return (self.current[0],self.current[1] - 1)
+            elif neighbour_list[0] == 'south':
+                return (self.current[0],self.current[1] + 1)
+            elif neighbour_list[0] == 'west':
+                return (self.current[0] - 1,self.current[1])
+            elif neighbour_list[0] == 'east':
+                return (self.current[0] + 1,self.current[1])
+        else:
+            return False
+    
+    def _find_intersection(self):
+        """ Finds intersection vertices in labyrinth. We are only
+        interested in intersections with more than two paths."""
+        count = 0
+        for each_list in self.lab.look():
+            if each_list[1] == 'wall':
+                count += 1
+        if count < 2:
+            return True
+        else:
+            return False
+    
+    def _connect_neighbours(self):
+        """ Connect neighbouring unvisited vertices and puts them to
+        visited set and intersection stack """
+        for prev in self.unvisited:
+            for next in self.unvisited:
+                if (next[0] == prev[0] and next[1] == prev[1] + 1) or (next[0] == prev[0] + 1 and next[1] == prev[1]):
+                    self.graph.addEdge((prev, next))
+                    self.visited.add(prev)
+                    self.visited.add(next)
+                    if self._find_intersection():
+                        self.intersection.append(prev)
+                        self.intersection.append(next)
+    
+    def moveSouth(self):
+        """ Move current to south. """
+        south = (self.current[0], self.current[1] + 1)
+        mv = self.lab.south()
+        self.check_grue(mv)
+        self.current = south
+        self.visited.add(self.current)
+    
+    def moveNorth(self):
+        """ Move current to north. """
+        north = (self.current[0], self.current[1] - 1)
+        mv = self.lab.north()
+        self.check_grue(mv)
+        self.current = north
+        self.visited.add(self.current)
+    
+    def moveWest(self):
+        """ Move current to west. """
+        west = (self.current[0] - 1, self.current[1])
+        mv = self.lab.west()
+        self.check_grue(mv)
+        self.current = west
+        self.visited.add(self.current)
+    
+    def moveEast(self):
+        """ Move current to east. """
+        east = (self.current[0] + 1, self.current[1])
+        mv = self.lab.east()
+        self.check_grue(mv)
+        self.current = east
+        self.visited.add(self.current)
+    
+    def move_to_position(self, position):
+        """ Moving AI to the given position. Used in backtracking."""
+        if position[0] == self.current[0]:
+            y_distance = position[1] - self.current[1]
+            if y_distance > 0:
+                self.moveSouth()
+            else:
+                self.moveNorth()
+        elif position[1] == self.current[1]:
+            x_distance = position[0] - self.current[0]
+            if x_distance > 0:
+                self.moveEast()
+            else:
+                self.moveWest()
+
+    def backtrack(self):
+        """ Tracking back using Dijkstra algorithm and intersection stack"""
+        last_intersection = self.intersection.pop()
+        retrace = Shortest_path().shortestPath(self.graph, self.current, last_intersection)
+        print retrace
+        print "Moving back..."
+        self.current = retrace.pop(0)
+        if self.current in self.intersection:
+            self.intersection.remove(self.current)
+        while retrace:
+            position = retrace.pop(0)
+            self.move_to_position(position)
+            if position in self.intersection:
+                self.intersection.remove(position)
+        
+    def move(self):
+        """ Moving. It's here the moving of AI actually happens. """
+        self.build_graph()
+        while 1:
+            if self.current in self.visited:
+                self.build_graph()
+            if (self.current[0], self.current[1] + 1) in self.unvisited:
+                self.moveSouth()
+            elif (self.current[0], self.current[1] - 1) in self.unvisited:
+                self.moveNorth()
+            elif (self.current[0] - 1, self.current[1]) in self.unvisited:
+                self.moveWest()
+            elif (self.current[0] + 1, self.current[1]) in self.unvisited:
+                self.moveEast()
+            elif self.intersection:
+                self.backtrack()
+                
+            #Using Tremaux's algorithm as backup
+            elif (self.current[0] + 1, self.current[1]) in self.visited.difference(self.visitedtwice):
+                self.visitedtwice.add(self.current)
+                self.moveEast()
+            elif (self.current[0] - 1, self.current[1]) in self.visited.difference(self.visitedtwice):
+                self.visitedtwice.add(self.current)
+                self.moveWest()
+            elif (self.current[0], self.current[1] - 1) in self.visited.difference(self.visitedtwice):
+                self.visitedtwice.add(self.current)
+                self.moveNorth()
+            elif (self.current[0], self.current[1] + 1) in self.visited.difference(self.visitedtwice):
+                self.visitedtwice.add(self.current)
+                self.moveSouth()
+                
+            if self._find_intersection() and self.current in self.unvisited:
+                self.intersection.append(self.current)
+                
+        self.lab.cleanup()
+
+    def check_grue(self, tile):
+        """ Check for a grue at the tile the player is standing on.
+        """
+        if tile[2] == 'grue':
+            if self.lab.inventory > 0:
+                self.lab.fire()
+                print 'Lighted match'
+
+    def build_graph(self):
+        """ Build graph around current, update unvisited set and connect neighbours. """
+        for each_list in self.lab.look():
+            vertice = self._add_vertice(each_list)
+            if vertice:
+                self.unvisited.add(vertice)
+                self.graph.addEdge((self.current, vertice))
+        
+        self.unvisited -= self.visited
+        self._connect_neighbours()
+        
+if __name__ == "__main__":
+    toby = Find_toby()
+    toby.move()
+    

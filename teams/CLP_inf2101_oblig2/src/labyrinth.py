@@ -1,0 +1,281 @@
+# -*- coding: utf-8 -*-
+
+# Labyrinth client.
+
+from graph import *
+from protocolBase import *
+from message import *
+import socket as s
+import time, sys
+PORT = 32323
+
+
+class Player(object):
+    def __init__(self):
+        self.labyrinth = labyrinth()
+        self.graph = Graph()
+        self.edgeNodes = []
+        self.hp = 5
+        self.pos = (0,0)
+        self.graph.add_node((0,0), ['tile', 'safe', 'safe'])
+    
+    
+    def move(self):
+        """Move if on edge node, or call get_back"""
+        pos = self.pos
+        if   not (pos[0], pos[1] -1) in self.graph.nodes:
+            self.move_dir('north')
+        elif not (pos[0], pos[1] +1) in self.graph.nodes:
+            self.move_dir('south')
+        elif not (pos[0] -1, pos[1]) in self.graph.nodes:
+            self.move_dir('west')
+        elif not (pos[0] +1, pos[1]) in self.graph.nodes:
+            self.move_dir('east')
+        else:
+            self.get_back()
+
+    
+    def get_back(self):
+        """Faind and get to the closest edge node"""
+        goal_node = None
+        while(goal_node == None):
+            goal_node = self.test_edge_node(self.edgeNodes.pop())
+        path = self.graph.shortest_path(self.pos, goal_node)
+
+        for node in path:
+            x = node[0] -self.pos[0]
+            y = node[1] -self.pos[1]
+            if y == -1:
+                self.move_dir('north')
+            elif y == 1:
+                self.move_dir('south')
+            elif x == -1:
+                self.move_dir('west')
+            elif x == 1:
+                self.move_dir('east')
+        
+    def look(self):
+        """Look and call the ifo save func"""
+        data = self.labyrinth.look()
+        self._look(data[0][0], data[0][1:4]) #North
+        self._look(data[1][0], data[1][1:4]) #South
+        self._look(data[2][0], data[2][1:4]) #west
+        self._look(data[3][0], data[3][1:4]) #East
+
+        
+    def _look(self, dire, data):
+        """Save the data seen in the look, if toby move to him"""
+        pos = self.pos
+        if dire == 'north':
+            look = (pos[0], pos[1] -1)
+        elif dire == 'south':
+            look = (pos[0], pos[1] +1)
+        elif dire == 'west':
+            look = (pos[0] -1, pos[1])
+        elif dire == 'east':
+            look = (pos[0] +1, pos[1])
+        
+        self.graph.add_node(look, data)
+        if data[0] == 'wall':
+            self.graph.add_edge(pos, look,1000)
+        elif data[0] == 'tile':
+            self.graph.add_edge(pos, look, 1)
+            self.add_edge_node(look)
+        elif data[0] == 'toby':
+            self.move_dir(dire)
+            sys.exit(1)
+
+        
+    def add_edge_node(self, key):
+        """Test if the node is a edge node, if it is add it to the edge list"""
+        waigth = 0
+        if  (key[0], key[1] -1) in self.graph.nodes:
+            waigth +=1
+        if (key[0], key[1] +1) in self.graph.nodes:
+            waigth +=1
+        if (key[0] -1, key[1]) in self.graph.nodes:
+            waigth +=1
+        if (key[0] +1, key[1]) in self.graph.nodes:
+            waigth +=1
+        if waigth != 4:
+            self.edgeNodes.append(key)
+        
+    def test_edge_node(self, key):
+        """Test if the node is an edge node?"""
+        waigth = 0
+        if  (key[0], key[1] -1) in self.graph.nodes:
+            waigth +=1
+        if (key[0], key[1] +1) in self.graph.nodes:
+            waigth +=1
+        if (key[0] -1, key[1]) in self.graph.nodes:
+            waigth +=1
+        if (key[0] +1, key[1]) in self.graph.nodes:
+            waigth +=1
+        if waigth != 4:
+            return key
+        return None
+        
+    def move_dir(self,dire):
+        """Move and update the posijon, save the info abaout the new pos"""
+        pos = self.pos
+        if dire == 'north':
+            data = self.labyrinth.north()
+            new_pos = (pos[0], pos[1] -1)
+        elif dire == 'south':
+            data = self.labyrinth.south()
+            new_pos = (pos[0], pos[1] +1)
+        elif dire == 'west':
+            data = self.labyrinth.west()
+            new_pos = (pos[0] -1, pos[1])
+        elif dire == 'east':
+            data = self.labyrinth.east()
+            new_pos = (pos[0] +1, pos[1])
+        
+        self.graph.add_node(new_pos, data)
+        if data[0] == 'wall':
+            self.graph.add_edge(pos, new_pos,1000)
+        elif data[0] == 'tile':
+            self.pos = new_pos
+            self.graph.add_edge(pos, new_pos, 1)
+        elif data[0] == 'toby':
+            sys.exit(1)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+class labyrinth:
+    
+    def __init__(self):
+        conn = s.socket(s.AF_INET, s.SOCK_STREAM)
+        conn.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+        conn.connect(('localhost', PORT))
+        
+        fsock = conn.makefile()
+        port = int(fsock.readline())
+        # Set up protocol for message passing
+        self.pb = protocolBase()
+        # Beauty sleep
+        time.sleep(0.1)
+        self.pb.connect('localhost', port)
+        
+    # Interface for navigating the labyrinth
+    def north(self):
+        """ Sending request to server to go north. """
+        self.send("north")
+        msg = self.recv()
+        
+        return [msg.get(0), msg.get(1), msg.get(2)]
+        
+    def south(self):
+        """ Sending request to server to go south. """
+        self.send("south")
+        msg = self.recv()
+            
+        return [msg.get(0), msg.get(1), msg.get(2)]
+    
+    def east(self):
+        """ Sending request to server to go east. """
+        self.send("east")
+        msg = self.recv()
+            
+        return [msg.get(0), msg.get(1), msg.get(2)]
+    
+    def west(self):
+        """ Sending request to server to go west. """
+        self.send("west")
+        msg = self.recv()
+            
+        return [msg.get(0), msg.get(1), msg.get(2)]
+    
+    def look(self):
+        """ Sending request to server to look around.
+            Recieves status of adjacent tiles from server. """
+        self.send("look")
+        msg = self.recv() 
+        
+        msg_tokens = []
+        tiles = []
+        
+        for i in range(msg.size()):
+            msg_tokens.append(msg.get(i))
+        for tok in msg_tokens:
+            tiles.append(tok.split("|"))
+        
+        return tiles
+    
+    def disarm(self, direction):
+        """ Sending request to disarm an adjacent trap. """
+        self.send("disarm " + direction)
+        msg = self.recv() 
+
+        return msg.get(0)
+    
+    def fire(self):
+        self.send("fire")
+        msg = self.recv() 
+
+        return msg.get(0)
+    
+    def inventory(self):
+        self.send("inventory")
+        msg = self.recv() 
+
+        return int(msg.get(0))
+    
+    # Methods for communicating with the server
+    # Nevermind these.
+        
+    def send(self, op):
+        """ Sends the given operation to the server. """
+        tokens = op.split()
+        msg = message()
+        for token in tokens:    
+            msg.add(token)
+        self.pb.send(msg)
+        
+    def recv(self):
+        """ Recieves a response from the server. """
+        msg = self.pb.recv()
+        
+        if msg.get(0) == "timeout":
+            print "You failed to find Toby before the time ran out!"
+            self.cleanup()
+        elif msg.get(0) == "toby":
+            print "You found Toby. Good job!"
+            self.cleanup()
+        elif msg.get(0) == "dead":
+            print "You died!"
+            self.cleanup()
+        
+        return msg
+    
+    # Cleanup
+    def cleanup(self):
+        """ Close connections and notify server that session is over. """
+        self.pb.cleanup()
+        sys.exit()
+
+# Test to show some code usage:
+if __name__ == "__main__":
+    
+    # tile is either "tile", "toby" or "wall"
+    # trap is either "trap" or "safe"
+    # grue is either "grue or "safe"
+    
+    # Create a new labyrinth client
+    player = Player()
+    
+    while(1):
+        player.look()
+        player.move()
+        
+   

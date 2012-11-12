@@ -1,0 +1,41 @@
+------------------
+
+Running the server:
+
+    python labyrinthServer.py mapname gamemode
+
+The 'mapname' is the name of the map you want the server to run. 
+These maps can be found in the maps folder.
+The 'gamemode' is the gamemode you want to play.
+This can be 'lab' - for the Labyrinth,
+            'trapped' - for the Trapped Labyrinth,
+        and 'labyzork' - for the LabyZork gametype.
+
+Example:
+
+    python labyrinthServer.py empty lab
+
+------------------
+
+Running the map editor:
+
+    python labyrinthMapEditor.py mapname
+
+The 'mapname' can be whatever you want to call you new map.
+The editor is very simple, and a bit fragile. 
+
+When started you will first insert walls to form the labyrinth. This is done by clicking where you want the wall. When you are done making walls you press the 'Next' button on the right side of the map. 
+The next step is then to erase any errors made. smae proceedure.
+The next step is to insert a start location. When inserted, you dont need to press next. The next thing will by default be the end position. After inserting the end you also should not press 'Next'.
+The final two steps is to insert traps and grues. 
+-------------------
+
+Running the client:
+    python python labyrinth.py
+
+
+
+
+
+
+Enjoy!
